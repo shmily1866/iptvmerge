@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AptvMerge 控制台工作站</title>
+    <!-- 引入 hls.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        :root {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --surface-hover: #2c2c2c;
+            --primary: #bb86fc;
+            --primary-hover: #9965f4;
+            --danger: #cf6679;
+            --text: #e1e1e1;
+            --text-muted: #a0a0a0;
+            --border: #333;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            padding: 1rem 2rem;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 350px 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 70px);
+            box-sizing: border-box;
+        }
+        .panel {
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 0.8rem 1rem;
+            background: #252525;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-content {
+            padding: 1rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        /* Sources List */
+        .source-section {
+            margin-bottom: 2rem;
+        }
+        .source-section h3 {
+            margin-top: 0;
+            margin-bottom: 0.8rem;
+            font-size: 1rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .source-item {
+            background: #2a2a2a;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .source-item:hover {
+            border-color: var(--primary);
+        }
+        .source-item.active {
+            border-color: var(--primary);
+            background: rgba(187, 134, 252, 0.1);
+        }
+        .source-name { font-weight: bold; margin-bottom: 0.3rem; }
+        .source-url { font-size: 0.8rem; color: var(--text-muted); word-break: break-all; }
+        .delete-btn {
+            position: absolute;
+            top: 0.8rem;
+            right: 0.8rem;
+            background: transparent;
+            color: var(--danger);
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+        }
+
+        /* Forms & Buttons */
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 0.8rem;
+            background: #2a2a2a;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: white;
+            box-sizing: border-box;
+            margin-bottom: 1.2rem;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+        .add-btn {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            border-radius: 4px;
+            padding: 0.2rem 0.6rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .add-btn:hover { background: var(--primary); color: #000; }
+        
+        .main-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            margin-bottom: 1rem;
+            transition: background 0.2s;
+        }
+        .btn-start { background-color: var(--primary); color: #000; }
+        .btn-start:hover { background-color: var(--primary-hover); }
+        .btn-stop { background-color: var(--danger); }
+
+        /* Preview Player */
+        .player-wrapper {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        video { width: 100%; height: 100%; }
+        
+        /* Logs Terminal */
+        .logs-terminal {
+            background: #000;
+            flex: 1;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.85rem;
+            color: #0f0;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* Status indicator */
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); margin-right: 8px; }
+        .status-dot.active { background: #03dac6; box-shadow: 0 0 8px #03dac6; }
+        
+        .output-link {
+            display: block;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(3, 218, 198, 0.1);
+            border: 1px solid #03dac6;
+            border-radius: 8px;
+            color: #03dac6;
+            text-decoration: none;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        .output-link:hover { background: rgba(3, 218, 198, 0.2); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal {
+            background: var(--surface); padding: 2rem; border-radius: 8px; width: 500px; max-width: 90%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); border: 1px solid var(--border);
+        }
+        .modal h2 { margin-top: 0; color: var(--primary); }
+        .modal-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .m3u-list { max-height: 300px; overflow-y: auto; background: #121212; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; margin-top: 1rem; display: none; }
+        .m3u-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem; border-bottom: 1px solid #222; }
+        .m3u-item:last-child { border-bottom: none; }
+
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>AptvMerge 工作站</h1>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <div>
+            <span class="status-dot" id="global_status_dot"></span>
+            <span id="global_status_text">未运行</span>
+        </div>
+        <button class="main-btn btn-stop" style="margin: 0; padding: 0.4rem 1rem; font-size: 0.85rem; width: auto;" onclick="shutdownServer()">关闭后台控制台</button>
+    </div>
+</div>
+
+<div class="main-layout">
+    <!-- 左侧：源列表 -->
+    <div class="panel">
+        <div class="panel-header">媒体源库 (Sources)</div>
+        <div class="panel-content">
+            <div class="source-section">
+                <h3>视频源 
+                    <div>
+                        <button class="add-btn" onclick="openM3uModal('video')">M3U导入</button>
+                        <button class="add-btn" onclick="addSource('video')">+ 添加</button>
+                    </div>
+                </h3>
+                <div id="video_list"></div>
+            </div>
+            <div class="source-section">
+                <h3>音频源 
+                    <div>
+                        <button class="add-btn" onclick="openM3uModal('audio')">M3U导入</button>
+                        <button class="add-btn" onclick="addSource('audio')">+ 添加</button>
+                    </div>
+                </h3>
+                <div id="audio_list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 中间：控制台 -->
+    <div class="panel">
+        <div class="panel-header">合流控制 (Control)</div>
+        <div class="panel-content">
+            <label>已选视频源 (Video)</label>
+            <input type="text" id="active_video" placeholder="请在左侧选择或输入" readonly>
+            
+            <label>已选音频源 (Audio)</label>
+            <input type="text" id="active_audio" placeholder="请在左侧选择或输入" readonly>
+            
+            <label>时差调节 (延迟秒数)</label>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1.2rem;">
+                <input type="number" id="delay_seconds" step="0.1" value="0" style="margin-bottom: 0; flex: 1;">
+                <button class="add-btn" onclick="applyDelay()" style="padding: 0 1rem;">应用时差</button>
+            </div>
+            
+            <button class="main-btn btn-start" id="start_btn" onclick="startMerge()">启动</button>
+            <button class="main-btn btn-stop" id="stop_btn" onclick="stopMerge()" style="display:none;">停止运行</button>
+
+            <div id="output_area" style="display:none;">
+                <label>播放地址 (HLS)</label>
+                <a href="#" class="output-link" id="output_url" target="_blank"></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧：播放器与日志 -->
+    <div class="panel" style="display: flex; flex-direction: column;">
+        <div class="panel-header">
+            实时预览与日志 (Preview & Logs)
+            <button class="add-btn" onclick="clearLogs()" style="border-color: var(--danger); color: var(--danger);">清空日志</button>
+        </div>
+        <div class="panel-content" style="display: flex; flex-direction: column;">
+            <div class="player-wrapper">
+                <video id="videoPlayer" controls muted></video>
+            </div>
+            <div class="logs-terminal" id="logs_terminal"></div>
+        </div>
+    </div>
+</div>
+
+<!-- M3U Modal -->
+<div class="modal-overlay" id="m3u_modal">
+    <div class="modal">
+        <h2>从 M3U 链接导入</h2>
+        <input type="text" id="m3u_url_input" placeholder="输入 M3U 订阅地址 (http://...)">
+        <button class="main-btn btn-start" onclick="fetchM3u()">加载频道</button>
+        
+        <div class="m3u-list" id="m3u_channels_list"></div>
+        
+        <div class="modal-actions" style="display:none;" id="m3u_import_actions">
+            <button class="main-btn btn-start" onclick="importSelectedM3u()">导入选中的频道</button>
+            <button class="main-btn btn-stop" onclick="closeM3uModal()">取消</button>
+        </div>
+        <button class="main-btn btn-stop" id="m3u_close_btn" onclick="closeM3uModal()" style="margin-top: 1rem;">关闭</button>
+    </div>
+</div>
+
+<script>
+    let sourcesData = { video_sources: [], audio_sources: [] };
+    let isRunning = false;
+    let hlsInstance = null;
+    let logInterval = null;
+
+    // 获取并渲染源
+    async function loadSources() {
+        const res = await fetch('/api/sources');
+        sourcesData = await res.json();
+        renderSources();
+    }
+
+    function renderSources() {
+        const vList = document.getElementById('video_list');
+        const aList = document.getElementById('audio_list');
+        vList.innerHTML = '';
+        aList.innerHTML = '';
+
+        sourcesData.video_sources.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'source-item';
+            div.onclick = () => selectSource('video', s);
+            div.innerHTML = `
+                <div class="source-name">${s.name}</div>
+                <div class="source-url">${s.url}</div>
+                <button class="delete-btn" onclick="event.stopPropagation(); deleteSource('video', '${s.id}')">×</button>
+            `;
+            vList.appendChild(div);
+        });
+
+        sourcesData.audio_sources.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'source-item';
+            div.onclick = () => selectSource('audio', s);
+            div.innerHTML = `
+                <div class="source-name">${s.name}</div>
+                <div class="source-url">${s.url}</div>
+                <button class="delete-btn" onclick="event.stopPropagation(); deleteSource('audio', '${s.id}')">×</button>
+            `;
+            aList.appendChild(div);
+        });
+    }
+
+    function selectSource(type, source) {
+        if (type === 'video') {
+            document.getElementById('active_video').value = source.url;
+        } else {
+            document.getElementById('active_audio').value = source.url;
+        }
+    }
+
+    async function addSource(type) {
+        const name = prompt("请输入源名称:");
+        if (!name) return;
+        const url = prompt("请输入 M3U8 地址:");
+        if (!url) return;
+        
+        const newSource = { id: Date.now().toString(), name, url };
+        if (type === 'video') {
+            sourcesData.video_sources.push(newSource);
+        } else {
+            sourcesData.audio_sources.push(newSource);
+        }
+        await fetch('/api/sources', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(sourcesData)
+        });
+        renderSources();
+    }
+
+    async function deleteSource(type, id) {
+        if (!confirm("确定删除该源吗？")) return;
+        if (type === 'video') {
+            sourcesData.video_sources = sourcesData.video_sources.filter(s => s.id !== id);
+        } else {
+            sourcesData.audio_sources = sourcesData.audio_sources.filter(s => s.id !== id);
+        }
+        await fetch('/api/sources', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(sourcesData)
+        });
+        renderSources();
+    }
+
+    // 控制合流
+    async function startMerge() {
+        const video_url = document.getElementById('active_video').value;
+        const audio_url = document.getElementById('active_audio').value;
+        const delay_seconds = parseFloat(document.getElementById('delay_seconds').value) || 0;
+
+        if(!video_url || !audio_url) {
+            alert("请选择视频和音频源");
+            return;
+        }
+
+        await fetch('/api/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ video_url, audio_url, delay_seconds })
+        });
+        fetchStatus();
+    }
+
+    async function stopMerge() {
+        await fetch('/api/stop', { method: 'POST' });
+        fetchStatus();
+    }
+
+    async function applyDelay() {
+        const video_url = document.getElementById('active_video').value;
+        const audio_url = document.getElementById('active_audio').value;
+        const delay_seconds = parseFloat(document.getElementById('delay_seconds').value) || 0;
+
+        if(!video_url || !audio_url) {
+            alert("请选择视频和音频源");
+            return;
+        }
+
+        await fetch('/api/apply_delay', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ video_url, audio_url, delay_seconds })
+        });
+        fetchStatus();
+    }
+
+    async function clearLogs() {
+        await fetch('/api/clear_logs', { method: 'POST' });
+        document.getElementById('logs_terminal').textContent = '';
+    }
+
+    async function shutdownServer() {
+        if (!confirm("确定要彻底关闭后台服务吗？关闭后需要重新运行 start.bat 才能使用。")) return;
+        try {
+            await fetch('/api/shutdown', { method: 'POST' });
+        } catch(e) {}
+        document.body.innerHTML = "<h2 style='text-align:center; margin-top: 20%; color: #cf6679;'>后端服务已关闭。请关闭此网页。</h2>";
+    }
+
+    async function playHLSWhenReady(url) {
+        const check = setInterval(async () => {
+            if (!isRunning) {
+                clearInterval(check);
+                return;
+            }
+            try {
+                const res = await fetch(url, {method: 'HEAD'});
+                if (res.ok) {
+                    clearInterval(check);
+                    playHLS(url);
+                }
+            } catch(e) {}
+        }, 1000);
+    }
+
+    // 状态轮询
+    async function fetchStatus() {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        
+        const dot = document.getElementById('global_status_dot');
+        const text = document.getElementById('global_status_text');
+        const startBtn = document.getElementById('start_btn');
+        const stopBtn = document.getElementById('stop_btn');
+        const outArea = document.getElementById('output_area');
+        const outUrl = document.getElementById('output_url');
+
+        if (data.is_running && !isRunning) {
+            // 刚变成运行状态
+            isRunning = true;
+            dot.classList.add('active');
+            text.textContent = '合流服务运行中';
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'block';
+            outArea.style.display = 'block';
+            const url = window.location.origin + '/hls/index.m3u8';
+            outUrl.href = url;
+            outUrl.textContent = url;
+            
+            // 启动播放器 (等待文件真正生成后播放)
+            playHLSWhenReady(url);
+            
+            if(!logInterval) {
+                logInterval = setInterval(fetchLogs, 1000);
+            }
+        } else if (!data.is_running && isRunning) {
+            // 刚变成停止状态
+            isRunning = false;
+            dot.classList.remove('active');
+            text.textContent = '未运行';
+            startBtn.style.display = 'block';
+            stopBtn.style.display = 'none';
+            outArea.style.display = 'none';
+            stopHLS();
+        } else if (!data.is_running) {
+            startBtn.style.display = 'block';
+            stopBtn.style.display = 'none';
+            outArea.style.display = 'none';
+        }
+
+        // 恢复当前输入框的值（如果页面刚刷新）
+        if (!document.getElementById('active_video').value) document.getElementById('active_video').value = data.video_url;
+        if (!document.getElementById('active_audio').value) document.getElementById('active_audio').value = data.audio_url;
+        
+        const delayInput = document.getElementById('delay_seconds');
+        if (document.activeElement !== delayInput) {
+            delayInput.value = data.delay_seconds;
+        }
+    }
+
+    // 日志拉取
+    async function fetchLogs() {
+        const res = await fetch('/api/logs');
+        const data = await res.json();
+        const term = document.getElementById('logs_terminal');
+        term.textContent = data.logs.join('\n');
+        term.scrollTop = term.scrollHeight; // 自动滚到底部
+    }
+
+    // 播放器逻辑
+    function playHLS(url) {
+        const video = document.getElementById('videoPlayer');
+        if (Hls.isSupported()) {
+            if (hlsInstance) { hlsInstance.destroy(); }
+            hlsInstance = new Hls({
+                liveSyncDurationCount: 3,
+                maxMaxBufferLength: 10
+            });
+            hlsInstance.loadSource(url);
+            hlsInstance.attachMedia(video);
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                video.play().catch(e => console.log("Auto-play prevented", e));
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.addEventListener('loadedmetadata', function() {
+                video.play();
+            });
+        }
+    }
+
+    function stopHLS() {
+        if (hlsInstance) {
+            hlsInstance.destroy();
+            hlsInstance = null;
+        }
+        document.getElementById('videoPlayer').src = '';
+    }
+
+    // M3U 导入逻辑
+    let currentM3uTarget = 'video';
+    let fetchedChannels = [];
+
+    function openM3uModal(target) {
+        currentM3uTarget = target;
+        document.getElementById('m3u_modal').style.display = 'flex';
+        document.getElementById('m3u_url_input').value = '';
+        document.getElementById('m3u_channels_list').style.display = 'none';
+        document.getElementById('m3u_import_actions').style.display = 'none';
+        document.getElementById('m3u_close_btn').style.display = 'block';
+    }
+
+    function closeM3uModal() {
+        document.getElementById('m3u_modal').style.display = 'none';
+    }
+
+    async function fetchM3u() {
+        const url = document.getElementById('m3u_url_input').value;
+        if (!url) return;
+        const btn = event.target;
+        btn.textContent = "加载中...";
+        btn.disabled = true;
+        
+        try {
+            const res = await fetch('/api/parse_m3u', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url })
+            });
+            const data = await res.json();
+            if (data.success) {
+                fetchedChannels = data.channels;
+                renderM3uList();
+            } else {
+                alert("加载失败: " + data.error);
+            }
+        } catch (e) {
+            alert("请求错误: " + e);
+        }
+        btn.textContent = "加载频道";
+        btn.disabled = false;
+    }
+
+    function renderM3uList() {
+        const listContainer = document.getElementById('m3u_channels_list');
+        listContainer.innerHTML = '';
+        fetchedChannels.forEach((ch, idx) => {
+            const item = document.createElement('div');
+            item.className = 'm3u-item';
+            item.innerHTML = `
+                <input type="checkbox" id="m3u_ch_${idx}" value="${idx}">
+                <label for="m3u_ch_${idx}" style="margin:0; font-size: 0.85rem; cursor: pointer;">${ch.name}</label>
+            `;
+            listContainer.appendChild(item);
+        });
+        listContainer.style.display = 'block';
+        document.getElementById('m3u_import_actions').style.display = 'flex';
+        document.getElementById('m3u_close_btn').style.display = 'none';
+    }
+
+    async function importSelectedM3u() {
+        const checkboxes = document.querySelectorAll('#m3u_channels_list input[type="checkbox"]:checked');
+        const selected = Array.from(checkboxes).map(cb => fetchedChannels[cb.value]);
+        
+        if (selected.length === 0) {
+            alert("请至少选择一个频道");
+            return;
+        }
+
+        selected.forEach(ch => {
+            const newSource = { id: Date.now().toString() + Math.random().toString().slice(2,6), name: ch.name, url: ch.url };
+            if (currentM3uTarget === 'video') {
+                sourcesData.video_sources.push(newSource);
+            } else {
+                sourcesData.audio_sources.push(newSource);
+            }
+        });
+
+        await fetch('/api/sources', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(sourcesData)
+        });
+        
+        renderSources();
+        closeM3uModal();
+        alert(`成功导入 ${selected.length} 个源`);
+    }
+
+    // 初始化
+    loadSources();
+    fetchStatus();
+    fetchLogs(); // 初次加载一下历史日志
+    setInterval(fetchStatus, 3000);
+    setInterval(fetchLogs, 1500); // 持续拉取日志
+</script>
+
+</body>
+</html>

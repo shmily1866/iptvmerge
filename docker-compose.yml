@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  aptvmerge:
+    build: .
+    container_name: aptvmerge
+    ports:
+      - "38080:38080"
+    volumes:
+      - ./Runtime:/app/Runtime
+      - ./sources.json:/app/sources.json
+    restart: unless-stopped
