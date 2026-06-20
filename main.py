@@ -21,9 +21,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
-RUNTIME_DIR = os.path.abspath(os.path.join(os.getcwd(), "Runtime"))
+DATA_DIR = os.path.abspath(os.path.join(os.getcwd(), "data"))
+os.makedirs(DATA_DIR, exist_ok=True)
+RUNTIME_DIR = os.path.join(DATA_DIR, "Runtime")
 HLS_DIR = os.path.join(RUNTIME_DIR, "hls")
-SOURCES_FILE = os.path.join(os.getcwd(), "sources.json")
+SOURCES_FILE = os.path.join(DATA_DIR, "sources.json")
 
 def get_ffmpeg_path():
     local_ffmpeg = os.path.join(os.getcwd(), "ffmpeg.exe")

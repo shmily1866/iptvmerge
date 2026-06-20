@@ -7,6 +7,5 @@ services:
     ports:
       - "38080:38080"
     volumes:
-      - ./Runtime:/app/Runtime
-      - ./sources.json:/app/sources.json
+      - ./data:/app/data
     restart: unless-stopped

@@ -1,5 +1,4 @@
-Runtime/
-sources.json
+data/
 __pycache__/
 *.pyc
 .env
