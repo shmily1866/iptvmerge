@@ -128,6 +128,11 @@ def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: f
     args.extend([
         "-user_agent", "APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)",
         "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
+        "-reconnect", "1",
+        "-reconnect_at_eof", "1",
+        "-reconnect_streamed", "1",
+        "-reconnect_delay_max", "5",
+        "-rw_timeout", "15000000",
         "-thread_queue_size", "4096"
     ])
     
@@ -140,6 +145,11 @@ def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: f
         
         "-user_agent", "APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)",
         "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
+        "-reconnect", "1",
+        "-reconnect_at_eof", "1",
+        "-reconnect_streamed", "1",
+        "-reconnect_delay_max", "5",
+        "-rw_timeout", "15000000",
         "-thread_queue_size", "4096"
     ])
     

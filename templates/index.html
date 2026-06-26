@@ -541,8 +541,9 @@
         if (Hls.isSupported()) {
             if (hlsInstance) { hlsInstance.destroy(); }
             hlsInstance = new Hls({
-                liveSyncDurationCount: 3,
-                maxMaxBufferLength: 10
+                liveSyncDurationCount: 4,
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60
             });
             hlsInstance.loadSource(url);
             hlsInstance.attachMedia(video);
