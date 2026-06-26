@@ -127,11 +127,18 @@ def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: f
         
     args.extend([
         "-user_agent", "APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)",
-        "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-        "-reconnect", "1",
-        "-reconnect_at_eof", "1",
-        "-reconnect_streamed", "1",
-        "-reconnect_delay_max", "5",
+        "-protocol_whitelist", "file,http,https,tcp,tls,crypto"
+    ])
+    
+    if ".m3u" not in video_url.lower():
+        args.extend([
+            "-reconnect", "1",
+            "-reconnect_at_eof", "1",
+            "-reconnect_streamed", "1",
+            "-reconnect_delay_max", "5"
+        ])
+        
+    args.extend([
         "-rw_timeout", "15000000",
         "-thread_queue_size", "4096"
     ])
@@ -144,11 +151,18 @@ def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: f
         "-fflags", "+genpts",
         
         "-user_agent", "APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)",
-        "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-        "-reconnect", "1",
-        "-reconnect_at_eof", "1",
-        "-reconnect_streamed", "1",
-        "-reconnect_delay_max", "5",
+        "-protocol_whitelist", "file,http,https,tcp,tls,crypto"
+    ])
+    
+    if ".m3u" not in audio_url.lower():
+        args.extend([
+            "-reconnect", "1",
+            "-reconnect_at_eof", "1",
+            "-reconnect_streamed", "1",
+            "-reconnect_delay_max", "5"
+        ])
+        
+    args.extend([
         "-rw_timeout", "15000000",
         "-thread_queue_size", "4096"
     ])
@@ -190,20 +204,19 @@ def preview_stream_arguments():
         "-nostats",
         "-rw_timeout", "12000000",
         "-live_start_index", "-2",
-        "-i", "http://127.0.0.1:38080/hls/index.m3u8",
+        "-i", os.path.join(HLS_DIR, "index.m3u8"),
         "-map", "0:v:0",
         "-map", "0:a:0",
         "-c", "copy",
         "-bsf:a", "aac_adtstoasc",
         "-f", "hls",
-        "-hls_segment_type", "fmp4",
-        "-hls_fmp4_init_filename", "init.mp4",
+        "-hls_segment_type", "mpegts",
         "-hls_time", "2",
         "-hls_list_size", "12",
         "-hls_delete_threshold", "12",
         "-hls_flags", "delete_segments",
         "-hls_allow_cache", "0",
-        "-hls_segment_filename", os.path.join(PREVIEW_DIR, "prev_%05d.m4s"),
+        "-hls_segment_filename", os.path.join(PREVIEW_DIR, "prev_%05d.ts"),
         os.path.join(PREVIEW_DIR, "index.m3u8")
     ]
 
