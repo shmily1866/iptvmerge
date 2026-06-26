@@ -260,10 +260,10 @@
         <div class="panel-header">合流控制 (Control)</div>
         <div class="panel-content">
             <label>已选视频源 (Video)</label>
-            <input type="text" id="active_video" placeholder="请在左侧选择或输入" readonly>
+            <input type="text" id="active_video" placeholder="请在左侧选择或输入">
             
             <label>已选音频源 (Audio)</label>
-            <input type="text" id="active_audio" placeholder="请在左侧选择或输入" readonly>
+            <input type="text" id="active_audio" placeholder="请在左侧选择或输入">
             
             <label>时差调节 (延迟秒数)</label>
             <div style="display: flex; gap: 0.5rem; margin-bottom: 1.2rem;">
@@ -368,7 +368,7 @@
     async function addSource(type) {
         const name = prompt("请输入源名称:");
         if (!name) return;
-        const url = prompt("请输入 M3U8 地址:");
+        const url = prompt("请输入流媒体地址 (M3U8 或 单链接):");
         if (!url) return;
         
         const newSource = { id: Date.now().toString(), name, url };
