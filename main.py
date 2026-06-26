@@ -219,7 +219,8 @@ async def start_preview_stream():
     p = await asyncio.create_subprocess_exec(
         *args,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+        stderr=asyncio.subprocess.PIPE,
+        cwd=PREVIEW_DIR
     )
     state.processes["preview"] = p
     asyncio.create_task(read_stream(p.stdout, "preview"))
