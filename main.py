@@ -112,7 +112,7 @@ def prepare_directories():
     os.makedirs(HLS_DIR, exist_ok=True)
     os.makedirs(PREVIEW_DIR, exist_ok=True)
 
-def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: float):
+def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: float, video_codec=""):
     args = [
         get_ffmpeg_path(),
         "-nostdin",
@@ -177,6 +177,9 @@ def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: f
         "-c:v", "copy"
     ])
 
+    if video_codec == "hevc":
+        args.extend(["-tag:v", "hvc1"])
+
     if delay_seconds < 0:
         delay_ms = int(round(-delay_seconds * 1000))
         args.extend(["-filter:a", f"adelay={delay_ms}:all=1,aresample=async=1:first_pts=0"])
@@ -186,17 +189,21 @@ def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: f
     args.extend([
         "-c:a", "aac",
         "-b:a", "128k",
-        "-f", "hls", "-hls_time", "2", "-hls_list_size", "24",
+        "-f", "hls",
+        "-hls_segment_type", "fmp4",
+        "-hls_fmp4_init_filename", "init.mp4",
+        "-hls_time", "2",
+        "-hls_list_size", "24",
         "-hls_delete_threshold", "24",
         "-hls_flags", "delete_segments",
         "-hls_allow_cache", "0",
-        "-hls_segment_filename", os.path.join(HLS_DIR, "seg_%05d.ts"),
+        "-hls_segment_filename", os.path.join(HLS_DIR, "seg_%05d.m4s"),
         os.path.join(HLS_DIR, "index.m3u8")
     ])
     return args
 
-def preview_stream_arguments():
-    return [
+def preview_stream_arguments(video_codec=""):
+    args = [
         get_ffmpeg_path(),
         "-nostdin",
         "-hide_banner",
@@ -208,32 +215,46 @@ def preview_stream_arguments():
         "-map", "0:v:0",
         "-map", "0:a:0",
         "-c", "copy",
-        "-bsf:a", "aac_adtstoasc",
+        "-bsf:a", "aac_adtstoasc"
+    ]
+    
+    if video_codec == "hevc":
+        args.extend(["-tag:v", "hvc1"])
+        
+    args.extend([
         "-f", "hls",
-        "-hls_segment_type", "mpegts",
+        "-hls_segment_type", "fmp4",
+        "-hls_fmp4_init_filename", "init.mp4",
         "-hls_time", "2",
         "-hls_list_size", "12",
         "-hls_delete_threshold", "12",
         "-hls_flags", "delete_segments",
         "-hls_allow_cache", "0",
-        "-hls_segment_filename", os.path.join(PREVIEW_DIR, "prev_%05d.ts"),
+        "-hls_segment_filename", os.path.join(PREVIEW_DIR, "prev_%05d.m4s"),
         os.path.join(PREVIEW_DIR, "index.m3u8")
-    ]
+    ])
+    return args
 
 async def start_calibration_merge(video_url, audio_url, delay_seconds):
-    args = calibration_merge_arguments(video_url, audio_url, delay_seconds)
-    log_msg(f"启动进程 merge", "系统")
+    global current_processes
+    
+    video_codec = await get_video_codec(video_url)
+    if video_codec:
+        log_msg(f"探测到视频编码: {video_codec}", "系统")
+        
+    args = calibration_merge_arguments(video_url, audio_url, delay_seconds, video_codec)
+    log_msg("启动进程 merge", "系统")
     p = await asyncio.create_subprocess_exec(
         *args,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+        stderr=asyncio.subprocess.STDOUT
     )
     state.processes["merge"] = p
     asyncio.create_task(read_stream(p.stdout, "merge"))
-    asyncio.create_task(read_stream(p.stderr, "merge"))
+    return video_codec
 
-async def start_preview_stream():
-    args = preview_stream_arguments()
+async def start_preview_stream(video_codec=""):
+    args = preview_stream_arguments(video_codec)
     log_msg(f"启动进程 preview", "系统")
     p = await asyncio.create_subprocess_exec(
         *args,
@@ -266,6 +287,31 @@ def get_media_sequence(playlist_path):
                     return int(line.split(":")[1].strip())
     except:
         return None
+
+import aiofiles
+import json
+
+async def get_video_codec(url: str) -> str:
+    try:
+        cmd = [
+            get_ffmpeg_path().replace("ffmpeg", "ffprobe"),
+            "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=codec_name",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            url
+        ]
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, _ = await process.communicate()
+        codec = stdout.decode().strip().lower()
+        return codec
+    except Exception as e:
+        log_msg(f"Failed to probe video codec: {e}", "系统")
+        return ""
 
 async def wait_for_playlist(playlist_path, minimum_segments, timeout, ready_log):
     start_time = time.time()
@@ -421,10 +467,10 @@ async def start_stream_flow(req: StartReq):
     log_msg(f"音频: {req.audio_url}")
     log_msg(f"时差: {req.delay_seconds} 秒")
 
-    await start_calibration_merge(req.video_url, req.audio_url, req.delay_seconds)
+    video_codec = await start_calibration_merge(req.video_url, req.audio_url, req.delay_seconds)
     await wait_for_playlist(os.path.join(HLS_DIR, "index.m3u8"), 2, 90, "HLS 输出就绪")
     
-    await start_preview_stream()
+    await start_preview_stream(video_codec)
     await wait_for_playlist(os.path.join(PREVIEW_DIR, "index.m3u8"), 1, 45, "内置播放流就绪")
     
     start_health_monitor()
