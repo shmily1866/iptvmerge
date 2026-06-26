@@ -128,15 +128,25 @@ def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: f
     args.extend([
         "-user_agent", "APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)",
         "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-        "-thread_queue_size", "4096",
-        "-live_start_index", "0",
+        "-thread_queue_size", "4096"
+    ])
+    
+    if ".m3u" in video_url.lower():
+        args.extend(["-live_start_index", "0"])
+        
+    args.extend([
         "-i", video_url,
         "-fflags", "+genpts",
         
         "-user_agent", "APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)",
         "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-        "-thread_queue_size", "4096",
-        "-live_start_index", "0",
+        "-thread_queue_size", "4096"
+    ])
+    
+    if ".m3u" in audio_url.lower():
+        args.extend(["-live_start_index", "0"])
+        
+    args.extend([
         "-i", audio_url,
         "-map", "0:v:0",
         "-map", "1:a:0",
