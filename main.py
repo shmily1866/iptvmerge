@@ -126,14 +126,14 @@ def calibration_merge_arguments(video_url: str, audio_url: str, delay_seconds: f
         args.extend(["-itsoffset", f"{delay_seconds:.3f}"])
         
     args.extend([
-        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "-user_agent", "APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)",
         "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
         "-thread_queue_size", "4096",
         "-live_start_index", "0",
         "-i", video_url,
         "-fflags", "+genpts",
         
-        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "-user_agent", "APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)",
         "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
         "-thread_queue_size", "4096",
         "-live_start_index", "0",
@@ -323,7 +323,7 @@ class ParseM3uReq(BaseModel):
 @app.post("/api/parse_m3u")
 async def parse_m3u(req: ParseM3uReq):
     try:
-        req_obj = urllib.request.Request(req.url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        req_obj = urllib.request.Request(req.url, headers={'User-Agent': 'APTV/1.2.2 (iPhone; iOS 17.0; Scale/3.00)'})
         with urllib.request.urlopen(req_obj, timeout=10) as response:
             content = response.read().decode('utf-8', errors='ignore')
         
