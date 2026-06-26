@@ -288,9 +288,6 @@ def get_media_sequence(playlist_path):
     except:
         return None
 
-import aiofiles
-import json
-
 async def get_video_codec(url: str) -> str:
     try:
         cmd = [
